@@ -43,7 +43,7 @@ uint32_t boardColor[] = {
 };
 
 #define BOARD_SIZE 9
-#define WINNING_FLASHES 8
+#define WINNING_FLASHES 7
 
 int X = 1;
 int O = 2;
@@ -69,6 +69,7 @@ int winningStrategy[][3] = {
 };
 
 void setup() {
+  
   strip.begin();           // INITIALIZE NeoPixel strip object
   strip.show();            
   strip.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
@@ -78,7 +79,9 @@ void setup() {
   
   startGame();             // Let the games begin
 }
+
 void colorWipe(uint32_t color, int wait) {
+  
   // From Adfruit strandtest example
   for(int i=0; i<strip.numPixels(); i++) { // For each pixel in strip...
     strip.setPixelColor(i, color);         //  Set pixel's color (in RAM)
@@ -86,8 +89,10 @@ void colorWipe(uint32_t color, int wait) {
     delay(wait);                           //  Pause for a moment
   }
 }
+
 // Initialize the board for a new game
 void startGame() {
+  
   colorWipe(boardColor[1], 10); // Red
   colorWipe(boardColor[2], 10); // Blue
   colorWipe(boardColor[0], 10); // Wipe off with 'black'
@@ -100,12 +105,14 @@ void startGame() {
   memset(board,0,sizeof(board));
   totalMoves = 0;
 }
+
 // Flash the board for a tie or winning game.
 void showWinner(int strategy) {
+  
   if (strategy == 0) { // Tie
     Serial.println("Tie game");
   } else {
-   if (turn == 1) {
+   if (winner == 1) {
       Serial.println("X is the WINNER!");
     } else {
       Serial.println("O is the WINNER!");
@@ -132,21 +139,24 @@ void showWinner(int strategy) {
     delay(150);
   }
 }
+
+// Validate the move against the current board
+  // and check for a winner or a tie game
 void makeMove(int boardPosition) {
 
-    for(int i = 0; i < 9; i++) {
-      Serial.print(board[i]);
-    }
-    Serial.println();
-
+  /*
+  for(int i = 0; i < 9; i++) {
+    Serial.print(board[i]);
+  }
+  Serial.println();
+  */
+  
   if (board[boardMap[boardPosition]] == turn) {
-    
     Serial.println("You already have that spot! Go Again.");
     
     return;
     
   } else if (board[boardMap[boardPosition]] == 0) { // Empty spot - Valid move
-
     board[boardMap[boardPosition]] = turn;
     
     strip.setPixelColor(boardMap[boardPosition], boardColor[turn]);
@@ -155,8 +165,8 @@ void makeMove(int boardPosition) {
     totalMoves++;
     Serial.println((String)"Total moves:"+totalMoves);
     
-    int winner = checkWin(turn);
-    if (winner == -1) { // No Winner (or Tie)
+    int winner = checkGame(turn);
+    if (winner == -1) { // Game still in progress
       if (turn == X) {
         turn = O;
         Serial.println("O's turn");
@@ -165,21 +175,23 @@ void makeMove(int boardPosition) {
         Serial.println("X's turn");
       }
     } else { 
-      showWinner(winner);
-      startGame();
+      showWinner(winner);  // Flash board for winner
+      startGame();  // Start a new game
     }
 
     return;
       
   } else {
-    
     Serial.println("Your opponent already has that spot! Try Again.");
     
-    return;  
+    return;
+    
   }
-  
 }
-int checkWin(int player) {
+
+// Check if someone has won the game or there is a tie.
+// Return the winning strategy (0 for tie) or -1 if game is still in progress.
+int checkGame(int player) {
   
   if (board[boardMap[1]] == player && board[boardMap[2]] == player && board[boardMap[3]] == player) { // 1
     winner = player;
@@ -223,10 +235,10 @@ int checkWin(int player) {
   
   // No winner
   return -1;
-  
 }
 
 void loop() {
+  
   int input;
   if (Serial.available() > 0) {    // is a character available?
     input = Serial.read() - '0';   // get the character and convert to int
@@ -234,8 +246,9 @@ void loop() {
     // check if a valid number was received
     if ((input >= 1) && (input <= BOARD_SIZE)) {
       makeMove(input);
-    }
-    else {
+    } else if (input == 0) {
+        startGame();  // Start a new game
+    } else {
       Serial.println("Invalid move");
     }
   }
